@@ -6,7 +6,16 @@ import {
   Response
 } from "effect/unstable/ai";
 
-const defaultModel = "gemini-2.5-flash";
+/**
+ * Fallback model when `GEMINI_MODEL` is not set.
+ *
+ * This has to be a model Google currently serves. The previous default was
+ * `gemini-2.5-flash`, which is no longer served to new API keys: a reviewer who
+ * copied `.env.example` and ran the app got a 404 on the very first call, with
+ * the raw Google payload as the only clue. A stale default is not a cosmetic
+ * problem, it is a broken first run.
+ */
+const defaultModel = "gemini-3.5-flash-lite";
 
 const FunctionCall = Schema.Struct({
   name: Schema.optional(Schema.String),
@@ -274,7 +283,16 @@ export const GeminiLanguageModelLive = Layer.effect(
             });
 
             if (!response.ok) {
-              throw new Error(await response.text());
+              // Surface the two facts that actually diagnose the failure (status
+              // and which model was asked for) instead of only the raw payload.
+              // A retired model id and a bad key both arrive here, and they need
+              // opposite fixes.
+              const body = await response.text();
+              throw new Error(
+                `Gemini returned ${response.status} for model "${config.model}". `
+                + `Check GEMINI_MODEL and GOOGLE_GENERATIVE_AI_API_KEY in your .env. `
+                + `Response: ${body}`
+              );
             }
 
             const json = decodeGeminiResponse(await response.json());
@@ -287,8 +305,20 @@ export const GeminiLanguageModelLive = Layer.effect(
   })
 ).pipe(Layer.orDie);
 
+/**
+ * Model name reported by the runtime (logs, `AiModel.ModelName`, traces).
+ *
+ * `AiModel.make` takes a static string, so before this it always reported
+ * `defaultModel` while the actual HTTP call used `GEMINI_MODEL` from config.
+ * The two could therefore disagree, which is worse than a cosmetic bug: an eval
+ * or a trace would attribute a result to a model that never ran it, and the
+ * experiment stops being reproducible. Reading the same variable here keeps the
+ * label honest. `GeminiConfig` remains the source of truth for the request.
+ */
+const reportedModel = process.env["GEMINI_MODEL"]?.trim() || defaultModel;
+
 export const GeminiModel = AiModel.make(
   "google",
-  defaultModel,
+  reportedModel,
   GeminiLanguageModelLive
 );

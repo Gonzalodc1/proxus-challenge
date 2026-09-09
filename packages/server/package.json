@@ -10,6 +10,9 @@
     "agent:tutor": "node --env-file=../../.env --import tsx src/domain/agents/academic-tutor.ts",
     "dev": "node --env-file=../../.env --import tsx src/index.ts",
     "eval:tutor:artifact-authoring": "node --env-file=../../.env --import tsx src/domain/agents/academic-tutor/evals/artifact-authoring.eval.ts",
+    "eval:tutor:grounding": "node --env-file=../../.env --import tsx src/domain/agents/academic-tutor/evals/grounding.eval.ts",
+    "eval:tutor:scenarios": "node --env-file=../../.env --import tsx src/domain/agents/academic-tutor/evals/scenarios.eval.ts",
+    "test:unit": "node --import tsx src/domain/agents/harness/cli.test.ts && node --import tsx src/domain/agents/harness/json-payload.test.ts && node --import tsx src/domain/student/profile.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

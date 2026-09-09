@@ -22,7 +22,9 @@ export const TutorChatStreamEvent = Schema.Union([
     message: AgentMessage
   }),
   Schema.Struct({
-    type: Schema.Literal("done")
+    type: Schema.Literal("done"),
+    // Lets the client attach feedback to the exact run that produced the answer.
+    traceId: Schema.optional(Schema.String)
   })
 ]);
 export type TutorChatStreamEvent = typeof TutorChatStreamEvent.Type;

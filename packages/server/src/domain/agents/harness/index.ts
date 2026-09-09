@@ -1,5 +1,6 @@
 export * from "./cli.ts";
 export * from "./harness.ts";
+export * from "./json-payload.ts";
 export * from "./message.ts";
 export * from "./session.ts";
 export * from "./session-repository.ts";

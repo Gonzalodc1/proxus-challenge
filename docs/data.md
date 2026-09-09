@@ -16,7 +16,38 @@ packages/server/.data/
   materials/
     pdfs/
       *.pdf
+  traces/
+    traces.jsonl
+  feedback/
+    feedback.jsonl
+  profiles/
+    <studentId>.json
+  evals/
+    scenarios-report.json
 ```
+
+### Traces
+
+Una línea JSON por ejecución del agente: pasos, tools llamadas, duración, por qué
+terminó, señales de andamiaje y atribución. Es lo que permite separar un fallo del modelo
+de un fallo del andamiaje después de los hechos, sin volver a ejecutar la tarea.
+
+**Aviso de dato personal:** la traza guarda el `input` y el `output` en crudo, es decir el
+texto literal del estudiante. Hoy no hay usuarios identificados, pero con cuentas eso sería
+dato personal dentro de un log de observabilidad, y lo correcto sería guardar siempre
+métricas y señales y el texto solo muestreado.
+
+### Feedback
+
+Una línea JSON por voto (`up` / `down`) con el `traceId` de la ejecución valorada. Sin esa
+referencia un voto no sirve para mejorar nada, porque no se puede saber si falló el
+andamiaje o se equivocó el modelo.
+
+### Profiles
+
+La memoria del estudiante como notas cortas (`gap`, `strength`, `preference`, `context`),
+nunca como transcripciones. Tope de 60 notas, que es un límite de coste de prompt y no de
+almacenamiento. Sin autenticación, todo cuelga de `local-student`.
 
 ## Materials
 
@@ -64,7 +95,13 @@ Para limpiar datos generados, para el server y borra selectivamente:
 ```bash
 rm -rf packages/server/.data/artifacts
 rm -rf packages/server/.data/agent-sessions
+rm -rf packages/server/.data/profiles
+: > packages/server/.data/traces/traces.jsonl
+: > packages/server/.data/feedback/feedback.jsonl
 ```
+
+Borrar `profiles/` deja al tutor sin memoria, que es lo que quieres para una demo desde
+cero o para reproducir un eval sin contaminación.
 
 No borres `materials/pdfs` si quieres conservar PDFs de prueba.
 

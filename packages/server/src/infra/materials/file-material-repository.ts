@@ -14,6 +14,28 @@ interface PdfFile {
   readonly path: string;
 }
 
+/**
+ * Turns a file name into an id the agent can pass as a single CLI token.
+ *
+ * The id used to be the file name verbatim. With a file called
+ * `Redes - Fundamentos.pdf` that produced the id `Redes - Fundamentos`, and
+ * `materials view <id> <pages>` then needed the id quoted while the page range
+ * stayed bare. Watching a real run, the agent burned its whole step budget
+ * trying to express that: unquoted (parsed as three arguments), each argument
+ * quoted separately, `--help`, and only then the form that works. It had done
+ * nothing wrong; the grammar was hostile.
+ *
+ * Ids are addresses and titles are for people, so they should not be the same
+ * string. The title keeps the file name untouched for display.
+ */
+const slugify = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 export const FileMaterialRepository = {
   make: (directory: string): Effect.Effect<MaterialRepositoryType, never, FileSystem.FileSystem | Path.Path | PdfService> => Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -39,9 +61,10 @@ export const FileMaterialRepository = {
           const stat = yield* fs.stat(fullPath).pipe(
             Effect.mapError(mapError)
           );
+          const baseName = path.basename(fileName, ".pdf");
           const material: PdfMaterial = {
-            id: path.basename(fileName, ".pdf"),
-            title: path.basename(fileName, ".pdf"),
+            id: slugify(baseName),
+            title: baseName,
             fileName,
             pageCount: yield* pdf.pageCount(fullPath).pipe(Effect.mapError(mapError)),
             uploadedAt: Option.getOrElse(stat.mtime, () => new Date(0)).toISOString()
@@ -54,7 +77,15 @@ export const FileMaterialRepository = {
 
     const getFile = (id: string): Effect.Effect<PdfFile, MaterialNotFound | MaterialRepositoryError> => Effect.gen(function* () {
       const files = yield* listFiles();
-      const found = files.find((file) => file.material.id === id);
+      // Also accepts the title, or anything that slugifies to the same id, so a
+      // model that reaches for the human-readable name still lands on the right
+      // material instead of spending steps discovering the exact form.
+      const wanted = slugify(id);
+      const found = files.find((file) =>
+        file.material.id === id
+        || file.material.id === wanted
+        || slugify(file.material.title) === wanted
+      );
       if (found === undefined) {
         return yield* new MaterialNotFound({ materialId: id });
       }

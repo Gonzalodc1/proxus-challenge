@@ -4,16 +4,120 @@
 @source "../node_modules/streamdown/dist/*.js";
 
 @layer base {
+  /*
+    Light is the default because the product is: proxus.es is a white,
+    high-contrast interface, and a study tool that opens dark when the rest of
+    the suite is light reads as a different app.
+
+    The mechanism is unchanged: Tailwind v4 emits every colour as
+    `var(--color-...)`, so the theme is a redefinition of the `slate` scale
+    rather than a rewrite of the classes in every component. Dark is the
+    override now, under `.dark`.
+  */
   :root {
-    color-scheme: dark;
+    color-scheme: light;
+
+    --color-slate-950: #f8f8fb; /* page */
+    --color-slate-900: #ffffff; /* cards and raised surfaces */
+    --color-slate-800: #e8e8ef; /* borders */
+    --color-slate-700: #d6d6e0; /* stronger borders, inputs */
+    --color-slate-600: #9aa0ac;
+    --color-slate-500: #7c8494; /* faint text */
+    --color-slate-400: #5f6775; /* muted text */
+    --color-slate-300: #414958;
+    --color-slate-200: #2a3140;
+    --color-slate-100: #14181f; /* primary text */
+    --color-slate-50: #0b0d12;
   }
 
+  :root.dark {
+    color-scheme: dark;
+
+    --color-slate-950: oklch(12.9% 0.042 264.695);
+    --color-slate-900: oklch(20.8% 0.042 265.755);
+    --color-slate-800: oklch(27.9% 0.041 260.031);
+    --color-slate-700: oklch(37.2% 0.044 257.287);
+    --color-slate-600: oklch(44.6% 0.043 257.281);
+    --color-slate-500: oklch(55.4% 0.046 257.417);
+    --color-slate-400: oklch(70.4% 0.04 256.788);
+    --color-slate-300: oklch(86.9% 0.022 252.894);
+    --color-slate-200: oklch(92.9% 0.013 255.508);
+    --color-slate-100: oklch(96.8% 0.007 247.896);
+    --color-slate-50: oklch(98.4% 0.003 247.858);
+  }
+
+  html,
   body {
     margin: 0;
+    background: var(--color-slate-950);
   }
 
   button,
   textarea {
     font: inherit;
   }
+}
+
+/*
+  Question transition for the quiz stepper.
+
+  Only one question is on screen at a time, so without a transition each answer
+  swap reads as the page flickering. The slide direction follows the navigation,
+  which is what tells the eye it moved forward rather than reloaded.
+*/
+@keyframes question-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--question-slide-from, 14px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.question-enter {
+  animation: question-enter 200ms ease-out;
+}
+
+/* Motion is decoration here: never make it a barrier. */
+@media (prefers-reduced-motion: reduce) {
+  .question-enter {
+    animation: none;
+  }
+}
+
+/*
+  Markdown que vive dentro de una linea: enunciados de pregunta, opciones de
+  respuesta y explicaciones de correccion.
+
+  El renderizador siempre produce bloques, y un bloque dentro de un <h3> o de
+  un <label> rompe la linea y mete margenes que no tocan. Aqui se aplanan, solo
+  en este contexto, para poder reutilizar el mismo renderizador (y por tanto el
+  mismo soporte de formulas) en lugar de mantener dos.
+*/
+.md-inline > * {
+  display: inline;
+}
+
+.md-inline p,
+.md-inline div,
+.md-inline span {
+  display: inline;
+  margin: 0;
+}
+
+/*
+  KaTeX hereda el color del texto de alrededor, asi que funciona igual en claro
+  y en oscuro sin tocar la paleta. Solo hace falta que una formula larga pueda
+  desplazarse en lugar de desbordar el panel.
+*/
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25rem;
+}
+
+.katex {
+  color: inherit;
 }

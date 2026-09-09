@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import * as AgentCli from "../harness/index.ts";
+import { repairInvalidQuoteEscapes } from "../harness/json-payload.ts";
 import {
   Artifact,
   ArtifactAttempt,
@@ -96,15 +97,37 @@ const normalizeCreateArtifactInput = (input: unknown) => {
   };
 };
 
+/**
+ * Confirmation returned after creating an artifact, deliberately without the id.
+ *
+ * The command used to hand back the whole artifact as JSON, id included, and
+ * the tutor then repeated that id to the student. Instructing the model not to
+ * mention it was fighting data placed in its own context a moment earlier: the
+ * reliable fix is not to hand it over. The id is internal plumbing, the student
+ * opens the artifact from the panel, and `artifacts list` still exposes ids for
+ * the rare case the agent genuinely needs one.
+ */
+const renderCreatedArtifact = (artifact: Artifact) => {
+  const detail = artifact.kind === "note"
+    ? ""
+    : ` con ${artifact.questions.length} pregunta${artifact.questions.length === 1 ? "" : "s"}`;
+
+  return [
+    `Creado un ${artifact.kind}: "${artifact.title}"${detail}.`,
+    "Ya está en el panel de estudio del estudiante, que lo resolverá ahí y se corregirá solo.",
+    "No repitas las preguntas en el chat ni menciones identificadores."
+  ].join("\n");
+};
+
 const decodeCreateArtifactInput = (json: string) =>
-  Schema.decodeUnknownEffect(UnknownFromJson)(json).pipe(
+  Schema.decodeUnknownEffect(UnknownFromJson)(repairInvalidQuoteEscapes(json)).pipe(
     Effect.map(normalizeCreateArtifactInput),
     Effect.flatMap(Schema.decodeUnknownEffect(CreateArtifactInput)),
     Effect.mapError((reason) => new ArtifactRepositorySerializationError({ reason }))
   );
 
 const decodeSubmitAttemptInput = (json: string) =>
-  Schema.decodeUnknownEffect(SubmitAttemptInputFromJson)(json).pipe(
+  Schema.decodeUnknownEffect(SubmitAttemptInputFromJson)(repairInvalidQuoteEscapes(json)).pipe(
     Effect.mapError((reason) => new ArtifactRepositorySerializationError({ reason }))
   );
 
@@ -163,7 +186,7 @@ export const makeArtifactCommands = (repository: ArtifactRepository) => {
       }, ({ json }) =>
         decodeCreateArtifactInput(json).pipe(
           Effect.andThen((input) => repository.createArtifact(input)),
-          Effect.map(renderArtifact),
+          Effect.map(renderCreatedArtifact),
           Effect.catch((error) => Effect.succeed(renderArtifactError(error)))
         )
       )

@@ -40,6 +40,16 @@ export const AgentHarness = {
     readonly name: string;
     readonly skills: readonly AgentSkill[];
     readonly commands?: readonly AgentCli.Command[];
+    /**
+     * Operating rules for this agent, appended after the tool scaffolding.
+     *
+     * Kept separate from `name` (the identity preamble) for two reasons: the
+     * scaffolding above enumerates the available skills, so any rule about not
+     * disclosing internals has to come after it to apply to that listing; and
+     * constraints placed last in the prompt are the least likely to be diluted
+     * by everything in between.
+     */
+    readonly instructions?: string;
   }): AgentHarness => {
     const commands = spec.commands ?? [];
     const findSkill = (name: string) => spec.skills.find((skill) => skill.name === name);
@@ -59,7 +69,9 @@ ${skillsHelp(spec.skills)}
 You initially only know skill names and short descriptions.
 Skills are not tools and their names are not callable functions.
 When a task matches a skill description, call the load_skill tool with the skill name, for example { "name": "use-uploaded-materials" }.
-Skill text may describe workflows, conventions, examples, or tools available elsewhere in the harness.`;
+Skill text may describe workflows, conventions, examples, or tools available elsewhere in the harness.${spec.instructions === undefined ? "" : `
+
+${spec.instructions}`}`;
 
     return {
       name: spec.name,

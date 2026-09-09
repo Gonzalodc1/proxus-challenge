@@ -232,7 +232,19 @@ const withCommandMetadata = <C extends Command>(
 export const tokenize = (input: string): Effect.Effect<readonly string[], CliError> =>
   Effect.gen(function* () {
     const tokens: string[] = [];
-    const tokenPattern = /\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([^\s"']+))/gy;
+    // Quoted tokens match up to the LAST matching quote, not the first.
+    //
+    // The payloads these commands carry are JSON blobs, and JSON routinely
+    // contains the other quote character: a Python quiz option such as
+    // `"1 y <class 'int'>"` inside a single-quoted argument closed the token
+    // early and left `int` dangling as a stray argument. The model had done
+    // exactly what the skill told it to do, so the failure belonged here.
+    //
+    // Trade-off: a command taking two separately quoted arguments on one line
+    // would now be read as a single token. No command in this CLI does that,
+    // each takes at most one quoted payload, so greedy matching is the right
+    // reading of this grammar. `test:unit` pins these cases down.
+    const tokenPattern = /\s*(?:"((?:\\.|[^\\])*)"|'((?:\\.|[^\\])*)'|([^\s"']+))/gy;
     let index = 0;
 
     while (index < input.length) {

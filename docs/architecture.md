@@ -128,6 +128,9 @@ flowchart TB
     Harness["domain/agents/harness\nAgentSession / tools / skills"]
     MaterialsDomain["domain/materials\nMaterialRepository / PdfService ports"]
     ArtifactsDomain["domain/artifacts\nArtifactRepository / grading"]
+    Observability["domain/observability\nAgentTrace / signals / attribution"]
+    Student["domain/student\nStudentProfile / learning signals"]
+    Feedback["domain/feedback\nFeedbackRepository port"]
   end
 
   subgraph Infra["Infrastructure layer"]
@@ -136,6 +139,9 @@ flowchart TB
     Poppler["infra/materials\nPopplerPdfService"]
     FileArtifacts["infra/artifacts\nFileArtifactRepository"]
     FileSessions["infra/agents\nFileSessionRepository"]
+    FileTraces["infra/observability\nFileTraceRepository"]
+    FileProfiles["infra/student\nFileProfileRepository"]
+    FileFeedback["infra/feedback\nFileFeedbackRepository"]
     NodePlatform["@effect/platform-node"]
   end
 
@@ -184,6 +190,9 @@ Archivos principales:
 - `packages/server/src/domain/agents/harness/*`
 - `packages/server/src/domain/artifacts/*`
 - `packages/server/src/domain/materials/*`
+- `packages/server/src/domain/observability/*`
+- `packages/server/src/domain/student/*`
+- `packages/server/src/domain/feedback/*`
 
 Aquí viven los conceptos del producto: tutor, sesiones, skills, commands, materials, artifacts, attempts y grading. También se definen puertos como `MaterialRepository`, `ArtifactRepository` o `PdfService`.
 
@@ -197,6 +206,9 @@ Archivos principales:
 - `packages/server/src/infra/artifacts/file-artifact-repository.ts`
 - `packages/server/src/infra/materials/file-material-repository.ts`
 - `packages/server/src/infra/materials/poppler-pdf-service.ts`
+- `packages/server/src/infra/observability/file-trace-repository.ts`
+- `packages/server/src/infra/student/file-profile-repository.ts`
+- `packages/server/src/infra/feedback/file-feedback-repository.ts`
 - `packages/server/src/domain/agents/gemini.ts`
 
 Esta capa implementa los puertos del dominio usando tecnología concreta: archivos JSON, PDFs locales, comandos Poppler, Gemini y servicios de Node.
@@ -274,6 +286,7 @@ Estado remoto con Effect Atom:
 - `packages/web/src/domain/materials/atoms.ts`
 - `packages/web/src/domain/artifacts/atoms.ts`
 - `packages/web/src/domain/tutor/atoms.ts`
+- `packages/web/src/domain/profile/atoms.ts`
 
 Streaming tutor:
 

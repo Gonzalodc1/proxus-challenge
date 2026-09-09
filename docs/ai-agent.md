@@ -19,11 +19,14 @@ Skills:
 
 - `packages/server/src/domain/agents/academic-tutor/skills/use-uploaded-materials.ts`
 - `packages/server/src/domain/agents/academic-tutor/skills/create-study-artifacts.ts`
+- `packages/server/src/domain/agents/academic-tutor/skills/remember-the-student.ts`
+- `packages/server/src/domain/agents/academic-tutor/skills/debate-with-the-student.ts`
 
 Commands:
 
 - `packages/server/src/domain/agents/academic-tutor/material-commands.ts`
 - `packages/server/src/domain/agents/academic-tutor/artifact-commands.ts`
+- `packages/server/src/domain/agents/academic-tutor/profile-commands.ts`
 
 ## Modelo mental
 
@@ -54,7 +57,34 @@ artifacts attempts [artifactId]
 artifacts grade <attemptId>
 ```
 
+Memoria del estudiante:
+
+```txt
+profile show
+profile remember '<json>'
+profile forget <noteId>
+```
+
 `materials view` puede devolver imágenes de páginas para llamadas multimodales a Gemini.
+
+## Memoria entre conversaciones
+
+El chat no guarda estado: la web reenvía el historial en cada turno y una recarga lo
+borra. Lo único que sobrevive es el **perfil del estudiante**
+(`packages/server/src/domain/student/profile.ts`), un conjunto pequeño de notas
+destiladas (`context`, `gap`, `strength`, `preference`) que el agente consulta y
+actualiza con los comandos `profile`.
+
+Dos fuentes escriben en él:
+
+- **El agente**, con `profile remember`, para lo que sale de la conversación.
+- **El sistema**, de forma determinista, al corregir un quiz: las preguntas falladas se
+  registran como `gap` sin pasar por el modelo
+  (`domain/student/learning-signals.ts`).
+
+El estudiante puede leer y borrar esa memoria desde la pestaña **Memoria** de la
+interfaz, o por API (`GET /api/profile`, `DELETE /api/profile/notes/:noteId`,
+`DELETE /api/profile`).
 
 ## Flujo de chat
 
@@ -67,11 +97,16 @@ artifacts grade <attemptId>
    - `{ type: "done" }`
 6. Si hubo tool results, la web invalida materiales/artifacts.
 
+## Evaluación y observabilidad
+
+Ver [`evaluation.md`](./evaluation.md): trazas de ejecución con atribución de fallos,
+feedback ligado a la traza, y las dos suites de evals (estructura y grounding).
+
 ## Configuración
 
 ```env
 GOOGLE_GENERATIVE_AI_API_KEY=...
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=...
 ```
 
 ## Buenas prácticas al tocar AI
